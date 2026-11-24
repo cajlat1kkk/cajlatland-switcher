@@ -1,0 +1,9 @@
+[Unit]
+Wants=cajlatland-switcher-ibus.service
+Description=Cajlatland Switcher input method
+PartOf=graphical-session.target
+After=graphical-session-pre.target
+
+[Service]
+ExecStart=%h/.local/bin/cajlatland-switcher daemon
+LimitCORE=0

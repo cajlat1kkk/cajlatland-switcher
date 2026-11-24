@@ -1,0 +1,8 @@
+[Unit]
+Description=Cajlatland Switcher IBus adapter
+PartOf=cajlatland-switcher.service
+After=cajlatland-switcher.service
+
+[Service]
+ExecStart=/usr/bin/python3 %h/.local/share/cajlatland-switcher/ibus_engine.py
+LimitCORE=0

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+src=$(cd "$(dirname "$0")" && pwd)
+dir=$1
+mkdir -p "$dir"
+(
+flock 9
+if [[ "$dir/method" -nt "$src/method.c" && "$dir/method" -nt "$src/input-method.xml" && "$dir/method" -nt "$0" ]]; then exit 0; fi
+wayland-scanner client-header "$src/input-method.xml" "$dir/method.h"
+wayland-scanner private-code "$src/input-method.xml" "$dir/protocol.c"
+cc -O2 -Wall -Werror -I"$dir" "$src/method.c" "$dir/protocol.c" $(pkg-config --cflags --libs wayland-client gio-2.0) -o "$dir/method.new"
+mv "$dir/method.new" "$dir/method"
+) 9>"$dir/.build.lock"

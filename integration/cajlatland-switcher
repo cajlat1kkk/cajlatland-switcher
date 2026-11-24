@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+source_dir="$HOME/.local/share/cajlatland-switcher"
+build_dir="${XDG_CACHE_HOME:-$HOME/.cache}/cajlatland-switcher/build"
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/cajlatland-switcher"
+mkdir -p "$config_dir"
+if [[ ! -e "$config_dir/switcher.ini" ]]; then cp -n "$source_dir/switcher.ini" "$config_dir/switcher.ini"; fi
+if [[ ${1:-} == gui || $# == 0 ]]; then exec /usr/bin/python3 "$source_dir/editor.py"; fi
+cargo build --quiet --locked --offline --release --manifest-path "$source_dir/Cargo.toml" --target-dir "$build_dir"
+binary="$build_dir/release/cajlatland-switcher"
+if [[ ${1:-} == daemon ]]; then
+    if ! grep -Eiq '^enabled[[:space:]]*=[[:space:]]*true[[:space:]]*$' "$config_dir/switcher.ini"; then exit 0; fi
+    bash "$source_dir/build-method" "$build_dir/wayland"
+    /usr/bin/python3 "$source_dir/fast_shift.py" &
+    exec "$build_dir/wayland/method" "$binary" "$source_dir/app_scope.py" "$config_dir/switcher.ini"
+fi
+exec "$binary" "$@"

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Cajlatland Switcher
+Comment=Исправление русской и английской раскладки и опечаток
+Exec=/bin/sh -c "exec ~/.local/bin/cajlatland-switcher gui"
+Icon=cajlatland-switcher
+Categories=Utility;TextTools;
+Keywords=раскладка;исправление;switcher;клавиатура;
+Terminal=false
