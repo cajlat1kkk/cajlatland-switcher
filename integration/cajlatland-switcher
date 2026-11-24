@@ -6,8 +6,23 @@ config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/cajlatland-switcher"
 mkdir -p "$config_dir"
 if [[ ! -e "$config_dir/switcher.ini" ]]; then cp -n "$source_dir/switcher.ini" "$config_dir/switcher.ini"; fi
 if [[ ${1:-} == gui || $# == 0 ]]; then exec /usr/bin/python3 "$source_dir/editor.py"; fi
-cargo build --quiet --locked --offline --release --manifest-path "$source_dir/Cargo.toml" --target-dir "$build_dir"
 binary="$build_dir/release/cajlatland-switcher"
+needs_build=0
+if [[ ! -x "$binary" ]]; then
+    needs_build=1
+elif [[ "$source_dir/Cargo.toml" -nt "$binary" || "$source_dir/Cargo.lock" -nt "$binary" || "$source_dir/build.rs" -nt "$binary" ]]; then
+    needs_build=1
+else
+    for src_file in "$source_dir"/src/*.rs; do
+        if [[ "$src_file" -nt "$binary" ]]; then
+            needs_build=1
+            break
+        fi
+    done
+fi
+if (( needs_build )); then
+    cargo build --quiet --locked --offline --release --manifest-path "$source_dir/Cargo.toml" --target-dir "$build_dir"
+fi
 if [[ ${1:-} == daemon ]]; then
     if ! grep -Eiq '^enabled[[:space:]]*=[[:space:]]*true[[:space:]]*$' "$config_dir/switcher.ini"; then exit 0; fi
     bash "$source_dir/build-method" "$build_dir/wayland"
