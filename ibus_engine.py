@@ -20,6 +20,10 @@ NAME = "cajlatland-switcher"
 BASE = Path(excluded.__file__).parent
 ENGINE = Path(os.environ.get("XDG_CACHE_HOME", Path.home()/".cache"))/"cajlatland-switcher/build/release/cajlatland-switcher"
 PRIVATE = int(IBus.InputHints.PRIVATE | IBus.InputHints.HIDDEN_TEXT | IBus.InputHints.NO_SPELLCHECK)
+def uses_preedit(ident):
+    return ident.casefold() in {"code", "code-oss", "code-insiders", "vscodium", "codium"} or ident.casefold().startswith(("yandex-browser", "ru.yandex.desktop.browser"))
+
+
 BOUNDARY = {ord(c):c for c in " !?:;,."}
 
 
@@ -76,7 +80,7 @@ class Switcher(IBus.Engine):
                 ident=window.get("class","")
                 if not ident or excluded.blocked(window) or excluded.protected(ident):
                     return False
-                self.browser=ident.lower().startswith(("yandex-browser","ru.yandex.desktop.browser"))
+                self.browser=uses_preedit(ident)
             except (OSError,ValueError,subprocess.SubprocessError):
                 return False
         if self.browser:
@@ -86,7 +90,7 @@ class Switcher(IBus.Engine):
                 if not self.word:
                     try:
                         current=query("activewindow")
-                        if excluded.blocked(current) or not current.get("class","").lower().startswith(("yandex-browser","ru.yandex.desktop.browser")):
+                        if excluded.blocked(current) or not uses_preedit(current.get("class","")):
                             return False
                     except (OSError,ValueError,subprocess.SubprocessError):
                         return False
@@ -117,7 +121,21 @@ class Switcher(IBus.Engine):
         ident=window.get("class","")
         if not ident or excluded.blocked(window) or excluded.protected(ident):
             return
-        if self.word:
+        selection=""
+        if ident.casefold() in {"code","code-oss","code-insiders","vscodium","codium"}:
+            selection=subprocess.run(
+                [sys.executable, BASE/"selected_text.py", str(window["pid"])],
+                capture_output=True, text=True, timeout=2,
+            ).stdout
+        if selection:
+            if query("activewindow").get("address")!=window.get("address"):
+                return
+            converted=convert(selection)
+            if selection==converted:
+                return
+            self.word=""
+            self.commit_text(IBus.Text.new_from_string(converted))
+        elif self.word:
             converted=convert(self.word)
             self.word=converted
             self.flush()
